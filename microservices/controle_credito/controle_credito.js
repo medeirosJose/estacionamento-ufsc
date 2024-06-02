@@ -109,8 +109,8 @@ app.post("/Credito/:cpf", async (req, res, next) => {
 // Método HTTP PATCH /Credito/:cpf - altera o credito de um usuario
 app.patch("/Credito/:cpf", (req, res, next) => {
   db.run(
-    `UPDATE creditos SET nome = COALESCE(?,nome), categoria = COALESCE(?,categoria) WHERE cpf = ?`,
-    [req.body.cpf, req.body.credito],
+    `UPDATE creditos SET credito = COALESCE(?,credito) WHERE cpf = ?`,
+    [req.body.credito, req.params.cpf],
     function (err) {
       if (err) {
         res.status(500).send("Erro ao alterar dados.");
