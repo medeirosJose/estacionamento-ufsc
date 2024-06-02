@@ -92,7 +92,6 @@ app.post("/Credito/:cpf", async (req, res, next) => {
       console.error("Ocorreu um erro:", error);
     });
   db.run(
-    
     `INSERT INTO creditos(cpf, credito) VALUES(?, ?)`,
     [req.body.cpf, req.body.credito],
     (err) => {
