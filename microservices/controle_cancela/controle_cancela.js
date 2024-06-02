@@ -1,3 +1,3 @@
-export function AbreCancela () {
+function AbreCancela () {
     console.log("A cancela foi aberta!")
 }
