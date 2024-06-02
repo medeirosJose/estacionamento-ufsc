@@ -8,6 +8,10 @@ app.use(logger("dev"));
 function selectProxyHost(req) {
   if (req.path.startsWith("/Cadastro")) return "http://localhost:8080/";
   else if (req.path.startsWith("/Vagas")) return "http://localhost:8090/";
+  else if (req.path.startsWith("/Credito")) return "http://localhost:8001/"
+  else if (req.path.startsWith("/ControleAcesso")) return "http://localhost:8100/"
+  else if (req.path.startsWith("/Entrada")) return "http://localhost:8100/"
+  else if (req.path.startsWith("/Saida")) return "http://localhost:8100/"
   else return null;
 }
 

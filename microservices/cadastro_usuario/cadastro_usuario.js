@@ -84,7 +84,7 @@ app.get('/Cadastro/:cpf', (req, res, next) => {
     });
 });
 
-// Método HTTP PATCH /Cadastro/:cpf - altera o cadastro de um cliente
+// Método HTTP PATCH /Cadastro/:cpf - altera o cadastro de um usuario
 app.patch('/Cadastro/:cpf', (req, res, next) => {
     db.run(`UPDATE cadastro SET nome = COALESCE(?,nome), categoria = COALESCE(?,categoria) WHERE cpf = ?`,
            [req.body.nome, req.body.categoria, req.params.cpf], function(err) {
@@ -99,16 +99,16 @@ app.patch('/Cadastro/:cpf', (req, res, next) => {
     });
 });
 
-//Método HTTP DELETE /Cadastro/:cpf - remove um cliente do cadastro
+//Método HTTP DELETE /Cadastro/:cpf - remove um usuário do cadastro
 app.delete('/Cadastro/:cpf', (req, res, next) => {
     db.run(`DELETE FROM cadastro WHERE cpf = ?`, req.params.cpf, function(err) {
       if (err){
-         res.status(500).send('Erro ao remover cliente.');
+         res.status(500).send('Erro ao remover usuário.');
       } else if (this.changes == 0) {
-         console.log("Cliente não encontrado.");
-         res.status(404).send('Cliente não encontrado.');
+         console.log("Usuário não encontrado.");
+         res.status(404).send('Usuário não encontrado.');
       } else {
-         res.status(200).send('Cliente removido com sucesso!');
+         res.status(200).send('Usuário removido com sucesso!');
       }
    });
 });

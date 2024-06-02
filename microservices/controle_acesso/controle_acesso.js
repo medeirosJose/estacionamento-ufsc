@@ -23,6 +23,7 @@ app.listen(porta, () => {
 
 // Importa o package do SQLite
 const sqlite3 = require("sqlite3");
+const { AbreCancela } = require("../controle_cancela/controle_cancela");
 
 var db = new sqlite3.Database("./dados.db", (err) => {
   if (err) {
@@ -78,6 +79,7 @@ app.post("/Entrada", (req, res, next) => {
                   res.status(500).send("Erro ao subtrair vaga.");
                 } else {
                   res.status(200).send("Entrada registrada com sucesso.");
+                  AbreCancela()
                 }
               }
             );
@@ -118,6 +120,7 @@ app.post("/Saida", (req, res, next) => {
                   res.status(500).send("Erro ao subtrair crédito.");
                 } else {
                   res.status(200).send("Saída registrada com sucesso.");
+                  AbreCancela()
                 }
               }
             );
