@@ -13,6 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const vagas = "http://localhost:8090/Vagas";
 const credito = "http://localhost:8001/Credito";
+const cadastro = "http://localhost:8080/Cadastro";
 
 const { AbreCancela } = require("../controle_cancela/controle_cancela");
 
