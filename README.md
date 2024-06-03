@@ -1,16 +1,29 @@
-# estacionamento-ufsc
+# 🚗 Estacionamento UFSC - Backend
 
-Atividade 3 proposta para a disciplina de Desenvolvimento de Sistemas Embarcados com foco em backend.
+Este é o backend do sistema de controle de acesso e gestão de estacionamento como atividade proposta pela disciplina Desenvolvimento de Sistemas Móveis e Embarcados da Universidade Federal de Santa Catarina (UFSC). 
 
-O backend será composto por cinco microservices, responsáveis pelas funcionalidades descritas a seguir:
+O sistema é composto por cinco microservices responsáveis por diferentes funcionalidades.
+## 🌐 Microservices
+### Cadastro de Usuários
 
-    cadastro de usuários: mantém os dados de cada usuário do sistema, como o CPF, nome e categoria (estudante, professor, TAE ou visitante);
+Responsável por manter os dados de cada usuário do sistema, incluindo CPF, nome e categoria (estudante, professor, TAE ou visitante).
+### Controle de Créditos
+Estudantes e visitantes devem adquirir créditos para utilizar os estacionamentos da UFSC. Este microservice é responsável por gerenciar esses créditos.
 
-    controle de créditos: estudantes e visitantes devem adquirir créditos para utilizar os estacionamentos da UFSC;
+### Controle de Vagas
+Controla a quantidade de vagas disponíveis em cada estacionamento da UFSC.
 
-    controle de vagas: controla a quantidade de vagas disponíveis em cada estacionamento; 
+### Controle de Acesso
+Verifica se a entrada/saída do veículo deve ser liberada. Na entrada, verifica o número de vagas disponíveis e na saída, subtrai os créditos da conta do usuário. Todas as entradas e saídas são registradas em uma tabela.
 
-    controle de acesso: verifica se a entrada/saída do veículo deve ser liberada; na entrada, deve verificar o número de vagas disponíveis; na saída, deve subtrair os créditos da conta do usuário; todas as entradas e saídas devem ser registradas em uma tabela;
-    
-    controle de cancela: envia o comando para abertura de uma cancela quando a entrada/saída for autorizada (obs.: basta imprimir uma mensagem na tela para simular a abertura).
+### Controle de Cancela
+Envia o comando para abertura de uma cancela quando a entrada/saída for autorizada. Basta imprimir uma mensagem na tela para simular a abertura da cancela.
 
+
+
+## 💻 Tecnologias Utilizadas
+- JavaScript
+- Node.js
+- Express
+- SQLite
+- Axios
