@@ -8,22 +8,22 @@ const express = require("express");
 const app = express();
 
 // Body Parser - usado para processar dados da requisição HTTP
-const bodyParser = require("body-parser");
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const vagas = "http://localhost:8090/Vagas";
 const credito = "http://localhost:8001/Credito";
 
-// Inicia o Servidor na porta 8004
+const { AbreCancela } = require("../controle_cancela/controle_cancela");
+
+// Inicia o Servidor na porta 8100
 let porta = 8100;
 app.listen(porta, () => {
   console.log("Servidor em execução na porta: " + porta);
 });
 
 // Importa o package do SQLite
-const sqlite3 = require("sqlite3");
-const { AbreCancela } = require("../controle_cancela/controle_cancela");
+const sqlite3 = require("sqlite3").verbose();
 
 var db = new sqlite3.Database("./dados.db", (err) => {
   if (err) {
@@ -50,9 +50,22 @@ db.run(
   }
 );
 
-// Método HTTP POST /Entrada - registra a entrada de um veículo, deve ser feito usando axios,
-//n posso acessar outros microservices e dbs diretamente
-// verifica se a entrada/saída do veículo deve ser liberada; na entrada, deve verificar o número de vagas disponíveis e fazer a subtracao de uma vaga disponivel;
+app.get("/UltimoRegistro/:cpf", (req, res, next) => {
+  db.get(
+    `SELECT * FROM controle_acesso WHERE cpf = ? ORDER BY accessId DESC LIMIT 1`,
+    req.params.cpf,
+    (err, result) => {
+      if (err) {
+        console.log("Erro: " + err);
+        res.status(500).send("Erro ao obter dados.");
+      } else {
+        res.status(200).json(result);
+      }
+    }
+  );
+});
+
+// Método HTTP POST /Entrada - registra a entrada de um veículo
 app.post("/Entrada", (req, res, next) => {
   var estacionamentoId = req.body.estacionamentoId;
   var cpf = req.body.cpf;
@@ -67,24 +80,28 @@ app.post("/Entrada", (req, res, next) => {
         console.log("Erro: " + err);
         res.status(500).send("Erro ao registrar entrada.");
       } else {
+        // checa se ja tem alguem com o cpf no estacionament
+
         axios.get(vagas + "/" + estacionamentoId).then((response) => {
           var vagasDisponiveis = response.data.vagasDisponiveis;
           if (vagasDisponiveis > 0) {
-            db.run(
-              `UPDATE vagas SET vagasDisponiveis = ? WHERE estacionamentoId = ?`,
-              [vagasDisponiveis - 1, estacionamentoId],
-              (err) => {
-                if (err) {
-                  console.log("Erro: " + err);
-                  res.status(500).send("Erro ao subtrair vaga.");
-                } else {
-                  res.status(200).send("Entrada registrada com sucesso.");
-                  AbreCancela()
-                }
-              }
-            );
+            axios
+              .put(vagas + "/" + estacionamentoId, {
+                nomeEstacionamento: response.data.nomeEstacionamento,
+                totalVagas: response.data.totalVagas,
+                vagasOcupadas: response.data.vagasOcupadas,
+                vagasDisponiveis: vagasDisponiveis - 1,
+                estacionamentoId: estacionamentoId,
+              })
+              .then(() => {
+                res.status(200).send("Entrada registrada com sucesso.");
+                AbreCancela();
+              })
+              .catch((err) => {
+                res.status(500).send("Erro ao subtrair vaga.");
+              });
           } else {
-            res.status(500).send("Vagas esgotadas.");
+            res.status(400).send("Não há vagas disponíveis.");
           }
         });
       }
@@ -93,12 +110,11 @@ app.post("/Entrada", (req, res, next) => {
 });
 
 // Método HTTP POST /Saida - registra a saída de um veículo
-// na saída, deve subtrair os créditos da conta do usuário
 app.post("/Saida", (req, res, next) => {
   var estacionamentoId = req.body.estacionamentoId;
   var cpf = req.body.cpf;
   var dataHora = new Date().toISOString();
-  var tipo = "saida";
+  var tipo = "saída";
 
   db.run(
     `INSERT INTO controle_acesso (estacionamentoId, cpf, dataHora, tipo) VALUES (?, ?, ?, ?)`,
@@ -109,23 +125,23 @@ app.post("/Saida", (req, res, next) => {
         res.status(500).send("Erro ao registrar saída.");
       } else {
         axios.get(credito + "/" + cpf).then((response) => {
-          var credito = response.data.credito;
-          if (credito > 0) {
-            db.run(
-              `UPDATE creditos SET credito = ? WHERE cpf = ?`,
-              [credito - 1, cpf],
-              (err) => {
-                if (err) {
-                  console.log("Erro: " + err);
-                  res.status(500).send("Erro ao subtrair crédito.");
-                } else {
-                  res.status(200).send("Saída registrada com sucesso.");
-                  AbreCancela()
-                }
-              }
-            );
+          var creditos = response.data.creditos;
+          if (creditos > 0) {
+            axios
+              .put(credito + "/" + cpf, {
+                cpf: cpf,
+                nome: response.data.nome,
+                creditos: creditos - 1,
+              })
+              .then(() => {
+                res.status(200).send("Saída registrada com sucesso.");
+                AbreCancela();
+              })
+              .catch((err) => {
+                res.status(500).send("Erro ao subtrair crédito.");
+              });
           } else {
-            res.status(500).send("Créditos insuficientes.");
+            res.status(400).send("Créditos insuficientes.");
           }
         });
       }
@@ -166,6 +182,38 @@ app.get("/ControleAcesso/:estacionamentoId", (req, res, next) => {
   db.all(
     `SELECT * FROM controle_acesso WHERE estacionamentoId = ?`,
     req.params.estacionamentoId,
+    (err, result) => {
+      if (err) {
+        console.log("Erro: " + err);
+        res.status(500).send("Erro ao obter dados.");
+      } else {
+        res.status(200).json(result);
+      }
+    }
+  );
+});
+
+// Metodo HPP GET para busacr os dados de entrada
+app.get("/Entrada", (req, res, next) => {
+  db.all(
+    `SELECT * FROM controle_acesso WHERE tipo = 'entrada'`,
+    [],
+    (err, result) => {
+      if (err) {
+        console.log("Erro: " + err);
+        res.status(500).send("Erro ao obter dados.");
+      } else {
+        res.status(200).json(result);
+      }
+    }
+  );
+});
+
+// Metodo HPP GET para busacr os dados de saida
+app.get("/Saida", (req, res, next) => {
+  db.all(
+    `SELECT * FROM controle_acesso WHERE tipo = 'saída'`,
+    [],
     (err, result) => {
       if (err) {
         console.log("Erro: " + err);
