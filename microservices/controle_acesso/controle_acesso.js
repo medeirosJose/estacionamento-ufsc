@@ -13,6 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const vagas = "http://localhost:8090/Vagas";
 const credito = "http://localhost:8001/Credito";
+const cadastro = "http://localhost:8080/Cadastro";
 
 const { AbreCancela } = require("../controle_cancela/controle_cancela");
 
@@ -146,27 +147,41 @@ app.post("/Saida", (req, res, next) => {
               console.log("Erro: " + err);
               res.status(500).send("Erro ao registrar saída.");
             } else {
-              axios.get(credito + "/" + cpf).then((response) => {
-                console.log(response.data);
-                var creditos = response.data.credito;
-                console.log("creditos: " + creditos);
-                if (creditos > 0) {
-                  axios
-                    .patch(credito + "/" + cpf, {
-                      cpf: cpf,
-                      credito: creditos - 1,
-                    })
-                    .then(() => {
-                      res.status(200).send("Saída registrada com sucesso.");
-                      AbreCancela();
-                    })
-                    .catch((err) => {
-                      res.status(500).send("Erro ao subtrair crédito.");
-                    });
+              axios.get(cadastro + "/" + cpf).then((response) => {
+                var categoria = response.data.categoria;
+                console.log(categoria)
+                if (categoria == "estudante" || categoria == "visitante"){
+                  axios.get(credito + "/" + cpf).then((response) => {
+                    console.log(response.data);
+                    var creditos = response.data.credito;
+                    console.log("creditos: " + creditos);
+                    if (creditos > 0) {
+                      axios
+                        .patch(credito + "/" + cpf, {
+                          cpf: cpf,
+                          credito: creditos - 1,
+                        })
+                        .then(() => {
+                          res.status(200).send("Saída registrada com sucesso.");
+                          AbreCancela();
+                        })
+                        .catch((err) => {
+                          res.status(500).send("Erro ao subtrair crédito.");
+                        });
+                    } else {
+                      res.status(400).send("Créditos insuficientes.");
+                    }
+                  }).catch((err) => {
+                    res.status(500).send("Erro ao procurar crédito.")
+                  })
                 } else {
-                  res.status(400).send("Créditos insuficientes.");
+                  res.status(200).send("Saída registrada com sucesso.");
+                  AbreCancela();
                 }
+              }).catch((err) => {
+                res.status(500).send("Erro ao procurar usuário.");
               });
+              
             }
           }
         );
