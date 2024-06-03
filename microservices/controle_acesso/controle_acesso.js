@@ -147,56 +147,102 @@ app.post("/Saida", (req, res, next) => {
               console.log("Erro: " + err);
               res.status(500).send("Erro ao registrar saída.");
             } else {
-              axios.get(credito + "/" + cpf).then((response) => {
-                console.log(response.data);
-                var creditos = response.data.credito;
-                console.log("creditos: " + creditos);
-                if (creditos > 0) {
-                  axios
-                    .patch(credito + "/" + cpf, {
-                      cpf: cpf,
-                      credito: creditos - 1,
-                    })
-                    .then(() => {
-                      axios
-                        .get(vagas + "/" + estacionamentoId)
-                        .then((response) => {
-                          var vagasDisponiveis = response.data.vagasDisponiveis;
+              axios
+                .get(cadastro + "/" + cpf)
+                .then((response) => {
+                  var categoria = response.data.categoria;
+                  console.log(categoria);
+                  if (categoria == "estudante" || categoria == "visitante") {
+                    axios
+                      .get(credito + "/" + cpf)
+                      .then((response) => {
+                        console.log(response.data);
+                        var creditos = response.data.credito;
+                        console.log("creditos: " + creditos);
+                        if (creditos > 0) {
                           axios
-                            .put(vagas + "/" + estacionamentoId, {
-                              nomeEstacionamento:
-                              response.data.nomeEstacionamento,
-                              totalVagas: response.data.totalVagas,
-                              vagasOcupadas: response.data.vagasOcupadas - 1,
-                              vagasDisponiveis: vagasDisponiveis + 1,
-                              estacionamentoId: estacionamentoId,
+                            .patch(credito + "/" + cpf, {
+                              cpf: cpf,
+                              credito: creditos - 1,
                             })
                             .then(() => {
-                              res
-                                .status(200)
-                                .send("Saída registrada com sucesso.");
-                              AbreCancela();
+                              axios
+                                .get(vagas + "/" + estacionamentoId)
+                                .then((response) => {
+                                  var vagasDisponiveis =
+                                    response.data.vagasDisponiveis;
+                                  axios
+                                    .put(vagas + "/" + estacionamentoId, {
+                                      nomeEstacionamento:
+                                        response.data.nomeEstacionamento,
+                                      totalVagas: response.data.totalVagas,
+                                      vagasOcupadas:
+                                        response.data.vagasOcupadas - 1,
+                                      vagasDisponiveis: vagasDisponiveis + 1,
+                                      estacionamentoId: estacionamentoId,
+                                    })
+                                    .then(() => {
+                                      res
+                                        .status(200)
+                                        .send("Saída registrada com sucesso.");
+                                      AbreCancela();
+                                    })
+                                    .catch((err) => {
+                                      res
+                                        .status(500)
+                                        .send("Erro ao adicionar vaga.");
+                                    });
+                                })
+                                .catch((err) => {
+                                  res.status(500).send("Erro ao buscar vagas.");
+                                });
                             })
                             .catch((err) => {
-                              res.status(500).send("Erro ao atualizar vaga.");
+                              res.status(500).send("Erro ao subtrair crédito.");
                             });
-                        });
-                    })
-                    .catch((err) => {
-                      res.status(500).send("Erro ao subtrair crédito.");
-                    });
-                } else {
-                  res.status(400).send("Créditos insuficientes.");
-                }
-              });
+                        } else {
+                          res.status(400).send("Créditos insuficientes.");
+                        }
+                      })
+                      .catch((err) => {
+                        res.status(500).send("Erro ao procurar crédito.");
+                      });
+                  } else {
+                    axios
+                      .get(vagas + "/" + estacionamentoId)
+                      .then((response) => {
+                        var vagasDisponiveis = response.data.vagasDisponiveis;
+                        axios
+                          .put(vagas + "/" + estacionamentoId, {
+                            nomeEstacionamento:
+                              response.data.nomeEstacionamento,
+                            totalVagas: response.data.totalVagas,
+                            vagasOcupadas: response.data.vagasOcupadas - 1,
+                            vagasDisponiveis: vagasDisponiveis + 1,
+                            estacionamentoId: estacionamentoId,
+                          })
+                          .then(() => {
+                            res
+                              .status(200)
+                              .send("Saída registrada com sucesso.");
+                            AbreCancela();
+                          })
+                          .catch((err) => {
+                            res.status(500).send("Erro ao adicionar vaga.");
+                          });
+                      })
+                      .catch((err) => {
+                        res.status(500).send("Erro ao buscar vagas.");
+                      });
+                  }
+                })
+                .catch((err) => {
+                  res.status(500).send("Erro ao procurar usuário.");
+                });
             }
           }
         );
       }
-    } else {
-      errorMessage = "Erro ao verificar último registro de saída.";
-      console.log(errorMessage);
-      res.status(500).send(errorMessage);
     }
   });
 });
