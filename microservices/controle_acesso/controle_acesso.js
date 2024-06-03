@@ -97,7 +97,7 @@ app.post("/Entrada", (req, res, next) => {
                     .put(vagas + "/" + estacionamentoId, {
                       nomeEstacionamento: response.data.nomeEstacionamento,
                       totalVagas: response.data.totalVagas,
-                      vagasOcupadas: response.data.vagasOcupadas,
+                      vagasOcupadas: response.data.vagasOcupadas + 1,
                       vagasDisponiveis: vagasDisponiveis - 1,
                       estacionamentoId: estacionamentoId,
                     })
@@ -157,8 +157,29 @@ app.post("/Saida", (req, res, next) => {
                       credito: creditos - 1,
                     })
                     .then(() => {
-                      res.status(200).send("Saída registrada com sucesso.");
-                      AbreCancela();
+                      axios
+                        .get(vagas + "/" + estacionamentoId)
+                        .then((response) => {
+                          var vagasDisponiveis = response.data.vagasDisponiveis;
+                          axios
+                            .put(vagas + "/" + estacionamentoId, {
+                              nomeEstacionamento:
+                              response.data.nomeEstacionamento,
+                              totalVagas: response.data.totalVagas,
+                              vagasOcupadas: response.data.vagasOcupadas - 1,
+                              vagasDisponiveis: vagasDisponiveis + 1,
+                              estacionamentoId: estacionamentoId,
+                            })
+                            .then(() => {
+                              res
+                                .status(200)
+                                .send("Saída registrada com sucesso.");
+                              AbreCancela();
+                            })
+                            .catch((err) => {
+                              res.status(500).send("Erro ao atualizar vaga.");
+                            });
+                        });
                     })
                     .catch((err) => {
                       res.status(500).send("Erro ao subtrair crédito.");
