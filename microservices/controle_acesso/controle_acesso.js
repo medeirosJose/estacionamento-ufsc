@@ -69,84 +69,114 @@ app.get("/UltimoRegistro/:cpf", (req, res, next) => {
 app.post("/Entrada", (req, res, next) => {
   var estacionamentoId = req.body.estacionamentoId;
   var cpf = req.body.cpf;
-  var dataHora = new Date().toISOString();
+  var dataHora = new Date().toUTCString();
   var tipo = "entrada";
 
-  db.run(
-    `INSERT INTO controle_acesso (estacionamentoId, cpf, dataHora, tipo) VALUES (?, ?, ?, ?)`,
-    [estacionamentoId, cpf, dataHora, tipo],
-    (err) => {
-      if (err) {
-        console.log("Erro: " + err);
-        res.status(500).send("Erro ao registrar entrada.");
+  axios.get("http://localhost:8100/UltimoRegistro/" + cpf).then((response) => {
+    console.log("dentro de ultimo registro");
+    if (response.status === 200) {
+      if (response.data && response.data.tipo === "entrada") {
+        console.log(response.data);
+        console.log("Usuário já está no estacionamento.");
+        errorMessage = "Usuário já está no estacionamento.";
+        res.status(500).send(errorMessage);
       } else {
-        // checa se ja tem alguem com o cpf no estacionament
-
-        axios.get(vagas + "/" + estacionamentoId).then((response) => {
-          var vagasDisponiveis = response.data.vagasDisponiveis;
-          if (vagasDisponiveis > 0) {
-            axios
-              .put(vagas + "/" + estacionamentoId, {
-                nomeEstacionamento: response.data.nomeEstacionamento,
-                totalVagas: response.data.totalVagas,
-                vagasOcupadas: response.data.vagasOcupadas,
-                vagasDisponiveis: vagasDisponiveis - 1,
-                estacionamentoId: estacionamentoId,
-              })
-              .then(() => {
-                res.status(200).send("Entrada registrada com sucesso.");
-                AbreCancela();
-              })
-              .catch((err) => {
-                res.status(500).send("Erro ao subtrair vaga.");
+        db.run(
+          `INSERT INTO controle_acesso (estacionamentoId, cpf, dataHora, tipo) VALUES (?, ?, ?, ?)`,
+          [estacionamentoId, cpf, dataHora, tipo],
+          (err) => {
+            if (err) {
+              console.log("Erro: " + err);
+              res.status(500).send("Erro ao registrar entrada.");
+            } else {
+              console.log("to aqui diabo");
+              axios.get(vagas + "/" + estacionamentoId).then((response) => {
+                var vagasDisponiveis = response.data.vagasDisponiveis;
+                if (vagasDisponiveis > 0) {
+                  axios
+                    .put(vagas + "/" + estacionamentoId, {
+                      nomeEstacionamento: response.data.nomeEstacionamento,
+                      totalVagas: response.data.totalVagas,
+                      vagasOcupadas: response.data.vagasOcupadas,
+                      vagasDisponiveis: vagasDisponiveis - 1,
+                      estacionamentoId: estacionamentoId,
+                    })
+                    .then(() => {
+                      res.status(200).send("Entrada registrada com sucesso.");
+                      AbreCancela();
+                    })
+                    .catch((err) => {
+                      res.status(500).send("Erro ao subtrair vaga.");
+                    });
+                } else {
+                  res.status(400).send("Não há vagas disponíveis.");
+                }
               });
-          } else {
-            res.status(400).send("Não há vagas disponíveis.");
+            }
           }
-        });
+        );
       }
+    } else {
+      console.error("Erro ao verificar último registro de entrada.");
+      errorMessage = "Erro ao verificar último registro de entrada.";
+      res.status(500).send(errorMessage);
     }
-  );
+  });
 });
 
 // Método HTTP POST /Saida - registra a saída de um veículo
 app.post("/Saida", (req, res, next) => {
   var estacionamentoId = req.body.estacionamentoId;
   var cpf = req.body.cpf;
-  var dataHora = new Date().toISOString();
+  var dataHora = new Date().toUTCString();
   var tipo = "saída";
 
-  db.run(
-    `INSERT INTO controle_acesso (estacionamentoId, cpf, dataHora, tipo) VALUES (?, ?, ?, ?)`,
-    [estacionamentoId, cpf, dataHora, tipo],
-    (err) => {
-      if (err) {
-        console.log("Erro: " + err);
-        res.status(500).send("Erro ao registrar saída.");
+  axios.get("http://localhost:8100/UltimoRegistro/" + cpf).then((response) => {
+    if (response.status === 200) {
+      if (response.data && response.data.tipo === "saída") {
+        console.log("Usuário já saiu do estacionamento.");
+        errorMessage = "Usuário já saiu do estacionamento.";
+        res.status(500).send(errorMessage);
       } else {
-        axios.get(credito + "/" + cpf).then((response) => {
-          var creditos = response.data.creditos;
-          if (creditos > 0) {
-            axios
-              .put(credito + "/" + cpf, {
-                cpf: cpf,
-                nome: response.data.nome,
-                creditos: creditos - 1,
-              })
-              .then(() => {
-                res.status(200).send("Saída registrada com sucesso.");
-                AbreCancela();
-              })
-              .catch((err) => {
-                res.status(500).send("Erro ao subtrair crédito.");
+        db.run(
+          `INSERT INTO controle_acesso (estacionamentoId, cpf, dataHora, tipo) VALUES (?, ?, ?, ?)`,
+          [estacionamentoId, cpf, dataHora, tipo],
+          (err) => {
+            if (err) {
+              console.log("Erro: " + err);
+              res.status(500).send("Erro ao registrar saída.");
+            } else {
+              axios.get(credito + "/" + cpf).then((response) => {
+                console.log(response.data);
+                var creditos = response.data.credito;
+                console.log("creditos: " + creditos);
+                if (creditos > 0) {
+                  axios
+                    .patch(credito + "/" + cpf, {
+                      cpf: cpf,
+                      credito: creditos - 1,
+                    })
+                    .then(() => {
+                      res.status(200).send("Saída registrada com sucesso.");
+                      AbreCancela();
+                    })
+                    .catch((err) => {
+                      res.status(500).send("Erro ao subtrair crédito.");
+                    });
+                } else {
+                  res.status(400).send("Créditos insuficientes.");
+                }
               });
-          } else {
-            res.status(400).send("Créditos insuficientes.");
+            }
           }
-        });
+        );
       }
+    } else {
+      errorMessage = "Erro ao verificar último registro de saída.";
+      console.log(errorMessage);
+      res.status(500).send(errorMessage);
     }
-  );
+  });
 });
 
 // Método HTTP GET /ControleAcesso - retorna todos os registros de controle de acesso
